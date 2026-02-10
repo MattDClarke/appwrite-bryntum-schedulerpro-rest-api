@@ -16,6 +16,65 @@ export default async ({ req, res }) => {
 
     const tablesDB = new TablesDB(client);
 
+    function createOperation(added, tableId) {
+        return Promise.all(
+            added.map(async(record) => {
+                const { $PhantomId, ...data } = record;
+                const prepared = prepareRowData(tableId, data);
+                const { $id } = await tablesDB.createRow(
+                    DATABASE_ID, tableId, ID.unique(), prepared
+                );
+                return { $PhantomId, id : $id };
+            })
+        );
+    }
+
+    function deleteOperation(removed, tableId) {
+        return Promise.all(
+            removed.map(({ id }) => tablesDB.deleteRow(DATABASE_ID, tableId, id))
+        );
+    }
+
+    function updateOperation(updated, tableId) {
+        return Promise.all(
+            updated.map(({ $PhantomId, id, ...data }) => {
+                const prepared = prepareRowData(tableId, data);
+                return tablesDB.updateRow(DATABASE_ID, tableId, id, prepared);
+            })
+        );
+    }
+
+    function prepareRowData(tableId, data) {
+        const prepared = { ...data };
+        // Remove dependency alias fields that aren't table columns.
+        if (tableId === DEPENDENCIES_TABLE_ID) {
+            delete prepared.from;
+            delete prepared.to;
+        }
+        // Stringify JSON fields for storage.
+        ['exceptionDates', 'segments', 'intervals'].forEach((field) => {
+            if (prepared[field] && typeof prepared[field] === 'object') {
+                prepared[field] = JSON.stringify(prepared[field]);
+            }
+        });
+        return prepared;
+    }
+
+    async function applyTableChanges(tableId, changes) {
+        let rows;
+        if (changes.added) {
+            rows = await createOperation(changes.added, tableId);
+        }
+        if (changes.removed) {
+            await deleteOperation(changes.removed, tableId);
+        }
+        if (changes.updated) {
+            await updateOperation(changes.updated, tableId);
+        }
+        // New row IDs to send to the client.
+        return rows;
+    }
+
     if (req.method === 'OPTIONS') {
           return res.send('', 200, {
               'Access-Control-Allow-Origin'  : 'http://localhost:3000',
@@ -75,5 +134,59 @@ export default async ({ req, res }) => {
             });
         }
     }
+    if (req.method === 'POST') {
+        const { requestId, resources, events, assignments, dependencies, calendars } = req.body;
+        try {
+            const response = { requestId, success : true };
+            let eventMapping = {};
 
+            if (resources) {
+                const rows = await applyTableChanges(RESOURCES_TABLE_ID, resources);
+                if (rows) response.resources = { rows };
+            }
+            if (events) {
+                const rows = await applyTableChanges(EVENTS_TABLE_ID, events);
+                if (rows) {
+                    // Map phantom event IDs to real IDs for assignment references.
+                    rows.forEach((row) => {
+                        eventMapping[row.$PhantomId] = row.id;
+                    });
+                    response.events = { rows };
+                }
+            }
+            if (assignments) {
+                // Replace phantom event IDs with real IDs.
+                if (events?.added) {
+                    assignments.added?.forEach((assignment) => {
+                        if (eventMapping[assignment.eventId]) {
+                            assignment.eventId = eventMapping[assignment.eventId];
+                        }
+                    });
+                }
+                const rows = await applyTableChanges(ASSIGNMENTS_TABLE_ID, assignments);
+                if (rows) response.assignments = { rows };
+            }
+            if (dependencies) {
+                const rows = await applyTableChanges(DEPENDENCIES_TABLE_ID, dependencies);
+                if (rows) response.dependencies = { rows };
+            }
+            if (calendars) {
+                const rows = await applyTableChanges(CALENDARS_TABLE_ID, calendars);
+                if (rows) response.calendars = { rows };
+            }
+
+            return res.json(response, 200, {
+                'Access-Control-Allow-Origin': 'http://localhost:3000',
+            });
+        }
+        catch(err) {
+            return res.json({
+                requestId,
+                success : false,
+                message : 'There was an error syncing the data changes'
+            }, 500, {
+                'Access-Control-Allow-Origin': 'http://localhost:3000',
+            });
+        }
+    }
 };
