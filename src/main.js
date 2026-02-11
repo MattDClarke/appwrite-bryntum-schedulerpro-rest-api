@@ -42,8 +42,13 @@ export default async ({ req, res, log, error }) => {
         )
     );
     const TABLE_COLUMNS = {};
+    // Log the response structure to find the correct property name.
+    log(JSON.stringify(Object.keys(columnResults[0])));
     allTableIds.forEach((tableId, i) => {
-        TABLE_COLUMNS[tableId] = columnResults[i].columns.map(col => col.key);
+        const result = columnResults[i];
+        // Try known property names.
+        const cols = result.columns || result.attributes || result.keys || [];
+        TABLE_COLUMNS[tableId] = cols.map(col => col.key);
     });
 
     function createOperation(added, tableId) {
