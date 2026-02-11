@@ -132,6 +132,7 @@ export default async ({ req, res }) => {
             console.log(err)
             return res.json({
                 success : false,
+                error: err,
                 message : 'Scheduler Pro data could not be loaded'
             }, 500, {
                 'Access-Control-Allow-Origin': 'http://localhost:3000',
