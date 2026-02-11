@@ -31,18 +31,19 @@ export default async ({ req, res }) => {
 
     const tablesDB = new TablesDB(client);
 
+
     function createOperation(added, tableId) {
         return Promise.all(
             added.map(async(record) => {
-                const { $PhantomId, ...data } = record;
-                const prepared = prepareRowData(tableId, data);
-                const { $id } = await tablesDB.createRow({
+                const { $PhantomId } = record;
+                const prepared = prepareRowData(tableId, record);
+                const row = await tablesDB.createRow({
                     databaseId : DATABASE_ID,
                     tableId,
                     rowId      : ID.unique(),
                     data       : prepared
                 });
-                return { $PhantomId, id : $id };
+                return { $PhantomId, id : row.$id };
             })
         );
     }
@@ -59,8 +60,9 @@ export default async ({ req, res }) => {
 
     function updateOperation(updated, tableId) {
         return Promise.all(
-            updated.map(({ $PhantomId, id, ...data }) => {
-                const prepared = prepareRowData(tableId, data);
+            updated.map((record) => {
+                const { id } = record;
+                const prepared = prepareRowData(tableId, record);
                 return tablesDB.updateRow({
                     databaseId : DATABASE_ID,
                     tableId,
@@ -73,6 +75,10 @@ export default async ({ req, res }) => {
 
     function prepareRowData(tableId, data) {
         const prepared = { ...data };
+        // Remove internal Bryntum fields.
+        Object.keys(prepared).forEach((k) => {
+            if (k[0] === '$' || k === 'id') delete prepared[k];
+        });
         // Remove dependency alias fields that aren't table columns.
         if (tableId === DEPENDENCIES_TABLE_ID) {
             delete prepared.from;
