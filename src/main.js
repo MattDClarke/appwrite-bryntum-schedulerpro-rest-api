@@ -9,6 +9,13 @@ const DEPENDENCIES_TABLE_ID = process.env.DEPENDENCIES_TABLE_ID;
 const CALENDARS_TABLE_ID = process.env.CALENDARS_TABLE_ID;
 
 export default async ({ req, res }) => {
+    if (req.method === 'OPTIONS') {
+        return res.send('', 200, {
+            'Access-Control-Allow-Origin'  : 'http://localhost:3000',
+            'Access-Control-Allow-Methods' : 'POST, GET, OPTIONS',
+            'Access-Control-Allow-Headers' : 'Content-Type, x-appwrite-user-jwt',
+        });
+    }
 
     const jwt = req.headers['x-appwrite-user-jwt'];
     if (!jwt) {
@@ -83,13 +90,6 @@ export default async ({ req, res }) => {
         return rows;
     }
 
-    if (req.method === 'OPTIONS') {
-          return res.send('', 200, {
-              'Access-Control-Allow-Origin'  : 'http://localhost:3000',
-              'Access-Control-Allow-Methods' : 'POST, GET, OPTIONS',
-              'Access-Control-Allow-Headers' : 'Content-Type, x-appwrite-user-jwt',
-          })
-    }
     if (req.method === 'GET') {
         try {
             const [
