@@ -13,7 +13,8 @@ export default async ({ req, res }) => {
     const client = new Client()
         .setEndpoint('https://cloud.appwrite.io/v1')
         .setProject(PROJECT_ID)
-        .setJWT(req.headers['authorization']);
+        // .setJWT(req.headers['authorization']);
+        .setJWT(req.headers['x-appwrite-user-jwt']);
 
     const tablesDB = new TablesDB(client);
 
