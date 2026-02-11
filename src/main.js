@@ -13,11 +13,11 @@ export default async ({ req, res }) => {
         return res.send('', 200, {
             'Access-Control-Allow-Origin'  : 'http://localhost:3000',
             'Access-Control-Allow-Methods' : 'POST, GET, OPTIONS',
-            'Access-Control-Allow-Headers' : 'Content-Type, x-appwrite-user-jwt',
+            'Access-Control-Allow-Headers' : 'Content-Type, Authorization',
         });
     }
 
-    const jwt = req.headers['x-appwrite-user-jwt'];
+    const jwt = req.headers['authorization'];
     if (!jwt) {
         return res.json({ success: false, message: 'Unauthorized' }, 401, {
             'Access-Control-Allow-Origin': 'http://localhost:3000',
@@ -27,7 +27,7 @@ export default async ({ req, res }) => {
     const client = new Client()
         .setEndpoint('https://fra.cloud.appwrite.io/v1')
         .setProject(PROJECT_ID)
-        .setJWT(jwt);
+        .setKey(req.headers['x-appwrite-key']);
 
     const tablesDB = new TablesDB(client);
 
