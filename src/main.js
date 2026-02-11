@@ -136,11 +136,11 @@ export default async ({ req, res }) => {
 
             return res.json({
                 success      : true,
-                resources    : { rows : resourcesRes.documents.map(cleanRow) },
-                events       : { rows : eventsRes.documents.map(cleanRow) },
-                assignments  : { rows : assignmentsRes.documents.map(cleanRow) },
-                dependencies : { rows : dependenciesRes.documents.map(cleanRow) },
-                calendars    : { rows : calendarsRes.documents.map(cleanRow) }
+                resources    : { rows : resourcesRes.rows.map(cleanRow) },
+                events       : { rows : eventsRes.rows.map(cleanRow) },
+                assignments  : { rows : assignmentsRes.rows.map(cleanRow) },
+                dependencies : { rows : dependenciesRes.rows.map(cleanRow) },
+                calendars    : { rows : calendarsRes.rows.map(cleanRow) }
             }, 200, {
                 'Access-Control-Allow-Origin': 'http://localhost:3000',
             });
