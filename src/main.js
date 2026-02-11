@@ -36,9 +36,12 @@ export default async ({ req, res }) => {
             added.map(async(record) => {
                 const { $PhantomId, ...data } = record;
                 const prepared = prepareRowData(tableId, data);
-                const { $id } = await tablesDB.createRow(
-                    DATABASE_ID, tableId, ID.unique(), prepared
-                );
+                const { $id } = await tablesDB.createRow({
+                    databaseId : DATABASE_ID,
+                    tableId,
+                    rowId      : ID.unique(),
+                    data       : prepared
+                });
                 return { $PhantomId, id : $id };
             })
         );
@@ -46,7 +49,11 @@ export default async ({ req, res }) => {
 
     function deleteOperation(removed, tableId) {
         return Promise.all(
-            removed.map(({ id }) => tablesDB.deleteRow(DATABASE_ID, tableId, id))
+            removed.map(({ id }) => tablesDB.deleteRow({
+                databaseId : DATABASE_ID,
+                tableId,
+                rowId      : id
+            }))
         );
     }
 
@@ -54,7 +61,12 @@ export default async ({ req, res }) => {
         return Promise.all(
             updated.map(({ $PhantomId, id, ...data }) => {
                 const prepared = prepareRowData(tableId, data);
-                return tablesDB.updateRow(DATABASE_ID, tableId, id, prepared);
+                return tablesDB.updateRow({
+                    databaseId : DATABASE_ID,
+                    tableId,
+                    rowId      : id,
+                    data       : prepared
+                });
             })
         );
     }
@@ -99,11 +111,11 @@ export default async ({ req, res }) => {
                 dependenciesRes,
                 calendarsRes
             ] = await Promise.all([
-                tablesDB.listRows(DATABASE_ID, RESOURCES_TABLE_ID),
-                tablesDB.listRows(DATABASE_ID, EVENTS_TABLE_ID),
-                tablesDB.listRows(DATABASE_ID, ASSIGNMENTS_TABLE_ID),
-                tablesDB.listRows(DATABASE_ID, DEPENDENCIES_TABLE_ID),
-                tablesDB.listRows(DATABASE_ID, CALENDARS_TABLE_ID)
+                tablesDB.listRows({ databaseId : DATABASE_ID, tableId : RESOURCES_TABLE_ID }),
+                tablesDB.listRows({ databaseId : DATABASE_ID, tableId : EVENTS_TABLE_ID }),
+                tablesDB.listRows({ databaseId : DATABASE_ID, tableId : ASSIGNMENTS_TABLE_ID }),
+                tablesDB.listRows({ databaseId : DATABASE_ID, tableId : DEPENDENCIES_TABLE_ID }),
+                tablesDB.listRows({ databaseId : DATABASE_ID, tableId : CALENDARS_TABLE_ID })
             ]);
 
             function cleanRow(row) {
