@@ -77,6 +77,7 @@ export default async ({ req, res }) => {
     }
 
     if (req.method === 'OPTIONS') {
+          console.log(Object.keys(appwrite))
           return res.send('', 200, {
               'Access-Control-Allow-Origin'  : 'http://localhost:3000',
               'Access-Control-Allow-Methods' : 'POST, GET, OPTIONS',
