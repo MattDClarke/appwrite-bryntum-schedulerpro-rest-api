@@ -126,6 +126,7 @@ export default async ({ req, res }) => {
             });
         }
         catch(err) {
+            console.err(err)
             return res.json({
                 success : false,
                 message : 'Scheduler Pro data could not be loaded'
@@ -180,6 +181,7 @@ export default async ({ req, res }) => {
             });
         }
         catch(err) {
+            console.err(err)
             return res.json({
                 requestId,
                 success : false,
