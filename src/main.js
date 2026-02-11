@@ -7,6 +7,7 @@ const EVENTS_TABLE_ID = process.env.EVENTS_TABLE_ID;
 const ASSIGNMENTS_TABLE_ID = process.env.ASSIGNMENTS_TABLE_ID;
 const DEPENDENCIES_TABLE_ID = process.env.DEPENDENCIES_TABLE_ID;
 const CALENDARS_TABLE_ID = process.env.CALENDARS_TABLE_ID;
+const BUCKET_ID = process.env.BUCKET_ID;
 
 export default async ({ req, res, log, error }) => {
     if (req.method === 'OPTIONS') {
@@ -150,7 +151,11 @@ export default async ({ req, res, log, error }) => {
 
             return res.json({
                 success      : true,
-                resources    : { rows : resourcesRes.rows.map(cleanRow) },
+                resources    : { rows : resourcesRes.rows.map(row => {
+                    const cleaned = cleanRow(row);
+                    cleaned.imageUrl = `https://cloud.appwrite.io/v1/storage/buckets/${BUCKET_ID}/files/${cleaned.name.toLowerCase()}.png/view?project=${PROJECT_ID}`;
+                    return cleaned;
+                }) },
                 events       : { rows : eventsRes.rows.map(cleanRow) },
                 assignments  : { rows : assignmentsRes.rows.map(cleanRow) },
                 dependencies : { rows : dependenciesRes.rows.map(cleanRow) },
