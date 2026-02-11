@@ -31,6 +31,20 @@ export default async ({ req, res, log, error }) => {
 
     const tablesDB = new TablesDB(client);
 
+    // Fetch valid column names for each table so we only send known fields.
+    const allTableIds = [
+        RESOURCES_TABLE_ID, EVENTS_TABLE_ID, ASSIGNMENTS_TABLE_ID,
+        DEPENDENCIES_TABLE_ID, CALENDARS_TABLE_ID
+    ];
+    const columnResults = await Promise.all(
+        allTableIds.map(tableId =>
+            tablesDB.listColumns({ databaseId : DATABASE_ID, tableId })
+        )
+    );
+    const TABLE_COLUMNS = {};
+    allTableIds.forEach((tableId, i) => {
+        TABLE_COLUMNS[tableId] = columnResults[i].columns.map(col => col.key);
+    });
 
     function createOperation(added, tableId) {
         return Promise.all(
@@ -74,16 +88,11 @@ export default async ({ req, res, log, error }) => {
     }
 
     function prepareRowData(tableId, data) {
-        const prepared = { ...data };
-        // Remove internal Bryntum fields.
-        Object.keys(prepared).forEach((k) => {
-            if (k[0] === '$' || k === 'id') delete prepared[k];
-        });
-        // Remove dependency alias fields that aren't table columns.
-        if (tableId === DEPENDENCIES_TABLE_ID) {
-            delete prepared.from;
-            delete prepared.to;
-        }
+        // Filter to only valid columns for this table.
+        const columns = TABLE_COLUMNS[tableId] || [];
+        const prepared = Object.fromEntries(
+            Object.entries(data).filter(([k]) => columns.includes(k))
+        );
         // Stringify JSON fields for storage.
         ['exceptionDates', 'segments', 'intervals'].forEach((field) => {
             if (prepared[field] && typeof prepared[field] === 'object') {
