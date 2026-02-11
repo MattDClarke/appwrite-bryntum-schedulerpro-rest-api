@@ -8,7 +8,7 @@ const ASSIGNMENTS_TABLE_ID = process.env.ASSIGNMENTS_TABLE_ID;
 const DEPENDENCIES_TABLE_ID = process.env.DEPENDENCIES_TABLE_ID;
 const CALENDARS_TABLE_ID = process.env.CALENDARS_TABLE_ID;
 
-export default async ({ req, res }) => {
+export default async ({ req, res, log, error }) => {
     if (req.method === 'OPTIONS') {
         return res.send('', 200, {
             'Access-Control-Allow-Origin'  : 'http://localhost:3000',
@@ -152,11 +152,11 @@ export default async ({ req, res }) => {
             });
         }
         catch(err) {
-            console.log(err)
+            error(JSON.stringify(err, null, 2));
             return res.json({
                 success : false,
-                error: err,
-                message : 'Scheduler Pro data could not be loaded'
+                message : err.message || 'Scheduler Pro data could not be loaded',
+                type    : err.type || null
             }, 500, {
                 'Access-Control-Allow-Origin': 'http://localhost:3000',
             });
@@ -208,11 +208,12 @@ export default async ({ req, res }) => {
             });
         }
         catch(err) {
-            console.log(err)
+            error(JSON.stringify(err, null, 2));
             return res.json({
                 requestId,
                 success : false,
-                message : 'There was an error syncing the data changes'
+                message : err.message || 'There was an error syncing the data changes',
+                type    : err.type || null
             }, 500, {
                 'Access-Control-Allow-Origin': 'http://localhost:3000',
             });
