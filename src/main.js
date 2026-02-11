@@ -1,6 +1,5 @@
 import { Client, TablesDB, Query, ID } from 'node-appwrite';
-  import * as appwrite from 'node-appwrite';
-  
+
 const PROJECT_ID = process.env.PROJECT_ID;
 const DATABASE_ID = process.env.DATABASE_ID;
 const RESOURCES_TABLE_ID = process.env.RESOURCES_TABLE_ID;
@@ -10,11 +9,18 @@ const DEPENDENCIES_TABLE_ID = process.env.DEPENDENCIES_TABLE_ID;
 const CALENDARS_TABLE_ID = process.env.CALENDARS_TABLE_ID;
 
 export default async ({ req, res }) => {
+
+    const jwt = req.headers['x-appwrite-user-jwt'];
+    if (!jwt) {
+        return res.json({ success: false, message: 'Unauthorized' }, 401, {
+            'Access-Control-Allow-Origin': 'http://localhost:3000',
+        });
+    }
+
     const client = new Client()
-        .setEndpoint('https://cloud.appwrite.io/v1')
+        .setEndpoint('https://fra.cloud.appwrite.io/v1')
         .setProject(PROJECT_ID)
-        // .setJWT(req.headers['authorization']);
-        .setJWT(req.headers['x-appwrite-user-jwt']);
+        .setJWT(jwt);
 
     const tablesDB = new TablesDB(client);
 
@@ -78,11 +84,10 @@ export default async ({ req, res }) => {
     }
 
     if (req.method === 'OPTIONS') {
-          console.log(Object.keys(appwrite))
           return res.send('', 200, {
               'Access-Control-Allow-Origin'  : 'http://localhost:3000',
               'Access-Control-Allow-Methods' : 'POST, GET, OPTIONS',
-              'Access-Control-Allow-Headers' : 'Content-Type, Authorization',
+              'Access-Control-Allow-Headers' : 'Content-Type, x-appwrite-user-jwt',
           })
     }
     if (req.method === 'GET') {
