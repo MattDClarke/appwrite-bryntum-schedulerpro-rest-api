@@ -27,7 +27,7 @@ export default async ({ req, res }) => {
     const client = new Client()
         .setEndpoint('https://fra.cloud.appwrite.io/v1')
         .setProject(PROJECT_ID)
-        .setKey(req.headers['x-appwrite-key']);
+        .setJWT(jwt);
 
     const tablesDB = new TablesDB(client);
 
