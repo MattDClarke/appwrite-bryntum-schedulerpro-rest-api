@@ -31,24 +31,18 @@ export default async ({ req, res, log, error }) => {
 
     const tablesDB = new TablesDB(client);
 
-    // Fetch valid column names for each table so we only send known fields.
-    const allTableIds = [
-        RESOURCES_TABLE_ID, EVENTS_TABLE_ID, ASSIGNMENTS_TABLE_ID,
-        DEPENDENCIES_TABLE_ID, CALENDARS_TABLE_ID
-    ];
-    const columnResults = await Promise.all(
-        allTableIds.map(tableId =>
-            tablesDB.listColumns({ databaseId : DATABASE_ID, tableId })
-        )
-    );
-    const TABLE_COLUMNS = {};
-    // Log the response structure to find the correct property name.
-    log(JSON.stringify(Object.keys(columnResults[0])));
-    allTableIds.forEach((tableId, i) => {
-        const result = columnResults[i];
-        // Try known property names.
-        const cols = result.columns || result.attributes || result.keys || [];
-        TABLE_COLUMNS[tableId] = cols.map(col => col.key);
+    // Valid columns per table — must match the Appwrite table schemas.
+    // Appwrite rejects unknown fields, and JWT lacks columns.read scope to fetch these dynamically.
+    const TABLE_COLUMNS = {
+        [RESOURCES_TABLE_ID]    : 'name,eventColor,readOnly,expanded',
+        [EVENTS_TABLE_ID]       : 'name,readOnly,timeZone,draggable,resizable,children,allDay,duration,durationUnit,startDate,endDate,exceptionDates,recurrenceRule,cls,eventColor,eventStyle,iconCls,style,calendar,direction,manuallyScheduled,unscheduled,ignoreResourceCalendar,constraintType,constraintDate,effort,effortUnit,inactive,segments,effortDriven,schedulingMode,delayFromParent,showInTimeline,percentDone,note,preamble,postamble',
+        [ASSIGNMENTS_TABLE_ID]  : 'eventId,resourceId,units',
+        [DEPENDENCIES_TABLE_ID] : 'fromEvent,toEvent,fromSide,toSide,type,cls,lag,lagUnit,exceptionDates,active',
+        [CALENDARS_TABLE_ID]    : 'name,intervals,unspecifiedTimeIsWorking'
+    };
+    // Convert comma-separated strings to Sets for fast lookup.
+    Object.keys(TABLE_COLUMNS).forEach(k => {
+        TABLE_COLUMNS[k] = new Set(TABLE_COLUMNS[k].split(','));
     });
 
     function createOperation(added, tableId) {
@@ -94,10 +88,10 @@ export default async ({ req, res, log, error }) => {
 
     function prepareRowData(tableId, data) {
         // Filter to only valid columns for this table.
-        const columns = TABLE_COLUMNS[tableId] || [];
-        const prepared = Object.fromEntries(
-            Object.entries(data).filter(([k]) => columns.includes(k))
-        );
+        const columns = TABLE_COLUMNS[tableId];
+        const prepared = columns
+            ? Object.fromEntries(Object.entries(data).filter(([k]) => columns.has(k)))
+            : { ...data };
         // Stringify JSON fields for storage.
         ['exceptionDates', 'segments', 'intervals'].forEach((field) => {
             if (prepared[field] && typeof prepared[field] === 'object') {
