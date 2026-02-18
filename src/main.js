@@ -139,7 +139,7 @@ export default async ({ req, res, log, error }) => {
                         .filter(([_, v]) => v != null)
                         .filter(([k]) => k[0] !== '$')
                 );
-                // Parse JSON string fields back to objects
+                // Parse JSON string fields back to objects.
                 ['intervals', 'exceptionDates', 'segments'].forEach((field) => {
                     if (typeof obj[field] === 'string') {
                         try { obj[field] = JSON.parse(obj[field]); } catch (e) { /* keep as string */ }
